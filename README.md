@@ -23,7 +23,12 @@ RapidEye images is endorsed by the Corporate Commitment Agreement signed between
 the Federal Rural University of Rio de Janeiro and the Ministry of the 
 Environment of Brazil.
 
-### How to cite
+## License
+
+You can use, modify, and distribute the content of this repository provided
+you give us the approapriate credits. See the [LICENSE](LICENSE) file.
+
+## How to cite
 
 Please cite this repository and its content as follows:
 
