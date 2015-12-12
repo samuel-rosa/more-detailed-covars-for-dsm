@@ -1,0 +1,11 @@
+%latex.default(Covariate, file = file, label = "tab:drop", table.env = TRUE,     longtable = FALSE, cgroup = c("CLAY", "SOC", "ECEC"), n.cgroup = c(2,         2, 2), na.blank = TRUE, ctable = TRUE, caption = long_cap,     where = "!h", insert.bottom = foot, rowlabel.just = "l",     cgroup.just = "l", cgroupTexCmd = NULL, rgroupTexCmd = NULL)%
+\ctable[caption={The importance of each environmental covariate$^a$ ($\Delta{R}^{2}_{adj}{}^b$) in the models calibrated with their less and more spatially detailed version.},label=tab:drop,pos=!h,doinside={scriptsizesetstretch{1.1}}]{lrrcrrcrr}{\tnote[]{${}^a$ Covariate: \texttt{soil} - soil map, \texttt{land} - land use map, \texttt{geo} - geologic map, \texttt{sat} - satellite image, and \texttt{dem} - digital elevation model. ${}^b$ $\Delta{R}^{2}_{adj} = {R}^{2}_{adj}{}_{q=5} - R^{2}_{adj}{}_{q=5-1}$, where $q$ is the number of covariates included in the model. Negative values result from adjusting the $R^{2}$ using the number of predictor variables initially offered to enter the model instead of the reduced number of predictor variables that entered the model.}}{\FL
+\multicolumn{1}{l}{Covariate}&\multicolumn{2}{l}{CLAY}&\multicolumn{1}{l}{}&\multicolumn{2}{l}{SOC}&\multicolumn{1}{l}{}&\multicolumn{2}{l}{ECEC}\NN
+\cline{2-3} \cline{5-6} \cline{8-9}
+\multicolumn{1}{l}{}&\multicolumn{1}{c}{Less}&\multicolumn{1}{c}{More}&\multicolumn{1}{c}{}&\multicolumn{1}{c}{Less}&\multicolumn{1}{c}{More}&\multicolumn{1}{c}{}&\multicolumn{1}{c}{Less}&\multicolumn{1}{c}{More}\ML
+\texttt{soil}&$-0.009$&$ 0.004$&&$-0.006$&$-0.008$&&$ 0.011$&$-0.003$\NN
+\texttt{land}&$ 0.003$&$-0.002$&&$ 0.003$&$ 0.088$&&$-0.004$&$ 0.041$\NN
+\texttt{geo}&$-0.019$&$-0.006$&&$-0.005$&$ 0.008$&&$ 0.007$&$ 0.033$\NN
+\texttt{sat}&$-0.010$&$-0.016$&&$ 0.018$&$-0.014$&&$ 0.011$&$-0.029$\NN
+\texttt{dem}&$ 0.030$&$ 0.001$&&$-0.009$&$ 0.016$&&$-0.035$&$-0.041$\LL
+}
