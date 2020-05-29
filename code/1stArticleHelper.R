@@ -558,10 +558,10 @@ looCV <-
       pred[i]    <- cv.pred$fit
       # standard deviation of the predicted mean value of Y
       # sd.mean[i] <- cv.pred$se.fit
-      # standard deviation of a predicted values of an individual observation
+      # standard deviation of a predicted value of an individual observation
       # also known as prediction error variance
-      pev[i] <- (sqrt(1 + c(cv.pred$se.fit/cv.pred$residual.scale) ^ 2) *
-                   cv.pred$residual.scale) ^ 2
+      # pev[i] <- (sqrt(1 + c(cv.pred$se.fit/cv.pred$residual.scale) ^ 2) * cv.pred$residual.scale) ^ 2
+      pev[i] <- cv.pred$se.fit^2 + cv.pred$residual.scale^2
       # residual sum of squares
       # sigma[i]   <- cv.pred$residual.scale
     }
