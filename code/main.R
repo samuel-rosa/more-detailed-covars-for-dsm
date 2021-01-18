@@ -1,70 +1,38 @@
-# DESCRIPTION ##################################################################
-# Source code used to develop the first article of my PhD research project. The
-# reference for the article is as follows:
-# Samuel-Rosa, A.; Heuvelink, G. B. M.; Vasques, G. M. & Anjos, L. H. C. Do more
-# detailed environmental covariates deliver more accurate soil maps?. Geoderma,
-# v. 243-244, p. 214-227, 2015. doi:10.1016/j.geoderma.2014.12.017
+# DESCRIPTION ######################################################################################
+# Source code used to develop the first article of my PhD research project. The reference for the
+# article is as follows:
+# Samuel-Rosa, A.; Heuvelink, G. B. M.; Vasques, G. M. & Anjos, L. H. C. Do more detailed
+# environmental covariates deliver more accurate soil maps?. Geoderma, v. 243-244, p. 214-227, 2015.
+# doi:10.1016/j.geoderma.2014.12.017
 
-# SETTINGS #####################################################################
+# Source user defined functions
+source("code/helper.R")
 
-# Clean workspace
-rm(list = ls())
-gc()
-
-# Load packages
-require(rgdal)
-require(spgrass6)
-require(raster)
-require(gstat)
-require(geoR)
-require(rgeos)
-require(pedometrics)
-require(car)
-require(caret)
-require(MASS)
-require(lattice)
-require(latticeExtra)
-require(grid)
-require(gridExtra)
-require(xtable)
-require(Hmisc)
-require(plotKML)
-require(stringr)
-require(plyr)
-require(pbapply)
-require(mail)
-
-# Load auxiliary data
-data(R_pal)
-r_data <- "data/R/"
-load(paste(r_data, "general.RData", sep = ""))
-
-# Source user defined function
-source(paste(r_code, "1stArticleHelper.R", sep = ""))
-
-# Load and check calibration data (1:350)
-cal_data <- paste(point_data, "labData.csv", sep = "")
-cal_data <- read.table(cal_data, sep = ";", header = TRUE, dec = ".", 
-                       na.strings = "na")
+# Load and check calibration data
+# Only 340 samples are used in the analysis. The additional 10 soil samples from Pedron et al.
+# (2006) and Miguel et al. (2011) are ignored in this update because they have a different support.
+# Three variables are considered: clay, organic carbon, and ECEC (Ca + Mg + K + Na + Al)
+cal_data <- read.table("data/soil-samples.txt", header = TRUE, stringsAsFactors = FALSE)
 colnames(cal_data)
 str(cal_data)
-id <- c("sampleid", "longitude", "latitude", "CLAY", "ORCA", "ECEC")
-id <- match(id, colnames(cal_data))
-cal_data <- cal_data[1:350, id]
-str(cal_data)
-coordinates(cal_data) <- ~ longitude + latitude
-proj4string(cal_data) <- sirgas2000
-cal_data <- spTransform(cal_data, wgs1984utm22s)
-plot(cal_data, pch = 20, cex = 0.5)
+sp::coordinates(cal_data) <- ~ coord_x + coord_y
+sp::proj4string(cal_data) <- "+proj=utm +zone=22 +south +datum=WGS84 +units=m +no_defs"
+sp::plot(cal_data, pch = 20, cex = 0.5)
 
-# Set path to results (figures and tables)
-fig_dir <- "~/projects/dnos-sm-rs/res/fig/1stArticle/"
-tab_dir <- "~/projects/dnos-sm-rs/res/tab/1stArticle/"
-    
+# Plot location of the study area in the Brazilian territory
+# This is the first figure of the article (FIG1a). We indicate some of the main Brazilian cities so
+# that the reader can have a better picture of the location of the study area compared to the size 
+# of the Brazilian territory.
+
+
+
+
+
+
+
 # Initiate GRASS GIS (64) section
-initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS,
-          location = "dnos-sm-rs", mapset = "predictions", 
-          pid = Sys.getpid(), override = TRUE)
+initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS, location = "dnos-sm-rs",
+          mapset = "predictions", pid = Sys.getpid(), override = TRUE)
 system("g.region rast=dnos.raster")
 gmeta6()
 
@@ -90,34 +58,27 @@ brazil$UF_05 <- as.factor(brazil$UF_05)
 rs <- rep("lightgray", length(brazil$UF_05))
 rs[which(brazil$UF_05 == "RS")] = "darkgray"
 # prepare spplot
-p <- spplot(brazil, zcol = "UF_05", aspect = "iso", col = "gray", 
-            scales = list(draw = TRUE, 
-                          x = list(at = seq(-70, -35, 5)),
-                          y = list(at = seq(-30, 5, 5))),
-            col.regions = colorRampPalette(rs)(27), colorkey = FALSE, 
-            cex = 0.3, sp.layout = list(pts),
-            par.settings = list(fontsize = list(text = 7, points = 5),
-                                layout.widths = list(left.padding = 0, 
-                                                     right.padding = 0), 
-                                layout.heights = list(top.padding = 0,
-                                                      bottom.padding = 0)),
-            panel = function(x, y, ...) {
-              panel.polygonsplot(x, y, ...)
-              panel.abline(h = seq(-30, 0, 5), v = seq(-70, -40, 5),
-                           col = "gray", lty = "dashed", lwd = 0.5)
-              panel.text(x = -53.790215, y = -29.657668, "Santa Maria", pos = 2)
-              panel.text(x = -47.887768, y = -15.788838, "Brasília", pos = 4)
-              panel.text(x = -46.665337, y = -23.536445, "São Paulo", pos = 4)
-              panel.text(x = -51.211134, y = -30.032484, "Porto Alegre", 
-                         pos = 4)
-              panel.text(x = -59.992370, y = -3.080757, "Manaus", pos = 4)
-            }
+p <- sp::spplot(
+  brazil, zcol = "UF_05", aspect = "iso", col = "gray", 
+  scales = list(draw = TRUE, x = list(at = seq(-70, -35, 5)), y = list(at = seq(-30, 5, 5))),
+  col.regions = colorRampPalette(rs)(27), colorkey = FALSE, cex = 0.3, sp.layout = list(pts),
+  par.settings = list(fontsize = list(text = 7, points = 5),
+                      layout.widths = list(left.padding = 0, right.padding = 0), 
+                      layout.heights = list(top.padding = 0, bottom.padding = 0)),
+  panel = function(x, y, ...) {
+    panel.polygonsplot(x, y, ...)
+    panel.abline(h = seq(-30, 0, 5), v = seq(-70, -40, 5), col = "gray", lty = "dashed", lwd = 0.5)
+    panel.text(x = -53.790215, y = -29.657668, "Santa Maria", pos = 2)
+    panel.text(x = -47.887768, y = -15.788838, "Brasília", pos = 4)
+    panel.text(x = -46.665337, y = -23.536445, "São Paulo", pos = 4)
+    panel.text(x = -51.211134, y = -30.032484, "Porto Alegre", pos = 4)
+    panel.text(x = -59.992370, y = -3.080757, "Manaus", pos = 4)
+  }
 )
 p
 # save image
 dev.off()
-pdf(file = paste(fig_dir, "FIG1a.pdf", sep = ""), width = 9/cm(1),
-    height = 9/cm(1))
+pdf(file = paste(fig_dir, "FIG1a.pdf", sep = ""), width = 9/cm(1), height = 9/cm(1))
 print(p)
 dev.off()
 rm(brazil, bb, pts, rs, p)
@@ -131,33 +92,26 @@ gc()
 pol <- readVECT6("buffer_BASIN_10")
 drain <- readVECT6("STREAM_10")
 drain <- gIntersection(drain, pol, byid = TRUE)
-p <- spplot(pol, zcol = "cat", col = "gray", fill = "lightgray",
-            scales = list(draw = TRUE),
-            colorkey = FALSE, aspect = "iso",
-            xlim = c(bbox(cal_data)[1, 1] * 0.9998, 
-                     bbox(cal_data)[1, 2] * 1.0005), 
-            ylim = c(bbox(cal_data)[2, 1] * 0.99999,
-                     bbox(cal_data)[2, 2] * 1.00001),
-            par.settings = list(fontsize = list(text = 7, points = 5),
-                                layout.widths = list(left.padding = 0, 
-                                                     right.padding = 0), 
-                                layout.heights = list(top.padding = 0,
-                                                      bottom.padding = 0)),
-            panel = function(x, y, ...) {
-              panel.polygonsplot(x, y, ...)
-              panel.points(x = coordinates(cal_data)[, 1],
-                           y = coordinates(cal_data)[, 2],
-                           pch = 20, cex = 0.5, col = "black")
-              panel.abline(v = seq(227000, 232000, 1000), 
-                           h = seq(6712000, 6722000, 1000),
-                           col = "gray", lty = "dashed", lwd = 0.5)
-            }) + layer(sp.lines(drain, col = "black", lty = "dashed", 
-                                lwd = 0.3))
+p <- sp::spplot(
+  pol, zcol = "cat", col = "gray", fill = "lightgray", scales = list(draw = TRUE),
+  colorkey = FALSE, aspect = "iso",
+  xlim = c(bbox(cal_data)[1, 1] * 0.9998, bbox(cal_data)[1, 2] * 1.0005), 
+  ylim = c(bbox(cal_data)[2, 1] * 0.99999, bbox(cal_data)[2, 2] * 1.00001),
+  par.settings = list(fontsize = list(text = 7, points = 5),
+                      layout.widths = list(left.padding = 0, right.padding = 0), 
+                      layout.heights = list(top.padding = 0, bottom.padding = 0)),
+  panel = function(x, y, ...) {
+    panel.polygonsplot(x, y, ...)
+    panel.points(x = coordinates(cal_data)[, 1], y = coordinates(cal_data)[, 2],
+                 pch = 20, cex = 0.5, col = "black")
+    panel.abline(v = seq(227000, 232000, 1000), h = seq(6712000, 6722000, 1000),
+                 col = "gray", lty = "dashed", lwd = 0.5)
+  }
+) + layer(sp.lines(drain, col = "black", lty = "dashed", lwd = 0.3))
 p
 # save image
 dev.off()
-pdf(file = paste(fig_dir, "FIG1b.pdf", sep = ""), width = 9/cm(1),
-    height = 9/cm(1))
+pdf(file = paste(fig_dir, "FIG1b.pdf", sep = ""), width = 9/cm(1), height = 9/cm(1))
 print(p)
 dev.off()
 rm(pol, p, drain)
@@ -181,17 +135,15 @@ bc_lambda <- list(CLAY = NA, ORCA = NA, ECEC = NA)
 vari <- cal_data$CLAY
 # Histogram with original variable
 xlab <- expression(paste('CLAY (g ',kg^-1,')', sep = ''))
-tmp <- plotHD(vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE,
-              col = c("lightgray", "black"), lty = "dashed",
-              stats = FALSE, lwd = c(0.001, 0.5),
-              scales = list(cex = c(1, 1)))
+tmp <- plotHD(
+  vari, HD = "over", nint = 20, xlab = xlab, BoxCox = FALSE, col = c("lightgray", "black"),
+  lty = "dashed", stats = FALSE, lwd = c(0.001, 0.5), scales = list(cex = c(1, 1)))
 dev.off()
-pdf(file = paste(fig_dir, "FIG2a.pdf", sep = ""), width = 6.3/cm(1), 
-    height = 6.3/cm(1))
-trellis.par.set(fontsize = list(text = 7, points = 5), 
-                axis.line = list(lwd = 0.01),
-                layout.widths = list(left.padding = 0, right.padding = 0), 
-                layout.heights = list(top.padding = 0, bottom.padding = 0))
+pdf(file = paste(fig_dir, "FIG2a.pdf", sep = ""), width = 6.3/cm(1), height = 6.3/cm(1))
+trellis.par.set(
+  fontsize = list(text = 7, points = 5), axis.line = list(lwd = 0.01),
+  layout.widths = list(left.padding = 0, right.padding = 0), 
+  layout.heights = list(top.padding = 0, bottom.padding = 0))
 print(tmp)
 dev.off()
 rm(tmp, xlab)
@@ -322,8 +274,7 @@ rm(pdf_file)
 
 # COVARIATES - Database 1 ------------------------------------------------------
 # These are the LESS detailed environmental covariates.
-soil1 <- c("SOIL_100b", "SOIL_100c",
-           "SOIL_100d", "SOIL_100e", "SOIL_100f")
+soil1 <- c("SOIL_100b", "SOIL_100c", "SOIL_100d", "SOIL_100e", "SOIL_100f")
 soil1 <- paste(soil1, collapse = " + ")
 land1 <- c("LU1980a", "LU1980b")
 land1 <- paste(land1, collapse = " + ")
@@ -754,19 +705,13 @@ grid <- c(2:6)
 line <- "ADJ_r2"
 ind  <- 2
 color <- c("lightyellow", "palegreen")
-a_plot <- plotMS(ecec_full_stats, grid, line, ind, color = color, 
-                 main = "full model")
-b_plot <- plotMS(ecec_vif_stats, grid, line, ind, color = color, 
-                 main = "VIF selection")
-c_plot <- plotMS(ecec_for_stats, grid, line, ind, color = color, 
-                 main = "forward selection")
-d_plot <- plotMS(ecec_back_stats, grid, line, ind, color = color, 
-                 main = "backward selection")
-e_plot <- plotMS(ecec_both_stats, grid, line, ind, color = color, 
-                 main = "stepwise selection")
+a_plot <- plotMS(ecec_full_stats, grid, line, ind, color = color, main = "full model")
+b_plot <- plotMS(ecec_vif_stats, grid, line, ind, color = color, main = "VIF selection")
+c_plot <- plotMS(ecec_for_stats, grid, line, ind, color = color, main = "forward selection")
+d_plot <- plotMS(ecec_back_stats, grid, line, ind, color = color, main = "backward selection")
+e_plot <- plotMS(ecec_both_stats, grid, line, ind, color = color, main = "stepwise selection")
 dev.off()
-pdf(file = paste(fig_dir, "ecec_model_series_plot.pdf", sep = ""),
-    width = 7, height = 15)
+pdf(file = paste(fig_dir, "ecec_model_series_plot.pdf", sep = ""), width = 7, height = 15)
 trellis.par.set(fontsize = list(text = 8, points = 6))
 grid.arrange(a_plot, b_plot, c_plot, d_plot, e_plot, ncol = 1)
 dev.off()
@@ -856,10 +801,8 @@ drop$clay$fine_lm <- buildMS(formula, data, vif = TRUE, aic = TRUE)
 rm(formula)
 drop$clay$base_r2 <- statsMS(drop$clay$base_lm)
 drop$clay$fine_r2 <- statsMS(drop$clay$fine_lm)
-drop$clay$base_dr2 <- deltaR2(clay_both_stats[clay_both_stats$id == 1, ],
-                              drop$clay$base_r2)
-drop$clay$fine_dr2 <- deltaR2(clay_both_stats[clay_both_stats$id == 32, ],
-                              drop$clay$fine_r2)
+drop$clay$base_dr2 <- deltaR2(clay_both_stats[clay_both_stats$id == 1, ], drop$clay$base_r2)
+drop$clay$fine_dr2 <- deltaR2(clay_both_stats[clay_both_stats$id == 32, ], drop$clay$fine_r2)
 
 # orca
 formula <- lapply(forms$base, update, ORCA_BC ~ .)
@@ -870,10 +813,8 @@ drop$orca$fine_lm <- buildMS(formula, data, vif = TRUE, aic = TRUE)
 rm(formula)
 drop$orca$base_r2 <- statsMS(drop$orca$base_lm)
 drop$orca$fine_r2 <- statsMS(drop$orca$fine_lm)
-drop$orca$base_dr2 <- deltaR2(orca_both_stats[orca_both_stats$id == 1, ],
-                              drop$orca$base_r2)
-drop$orca$fine_dr2 <- deltaR2(orca_both_stats[orca_both_stats$id == 32, ],
-                              drop$orca$fine_r2)
+drop$orca$base_dr2 <- deltaR2(orca_both_stats[orca_both_stats$id == 1, ], drop$orca$base_r2)
+drop$orca$fine_dr2 <- deltaR2(orca_both_stats[orca_both_stats$id == 32, ], drop$orca$fine_r2)
 
 # ecec
 formula <- lapply(forms$base, update, ECEC_BC ~ .)
@@ -884,10 +825,8 @@ drop$ecec$fine_lm <- buildMS(formula, data, vif = TRUE, aic = TRUE)
 rm(formula)
 drop$ecec$base_r2 <- statsMS(drop$ecec$base_lm)
 drop$ecec$fine_r2 <- statsMS(drop$ecec$fine_lm)
-drop$ecec$base_dr2 <- deltaR2(ecec_both_stats[ecec_both_stats$id == 1, ],
-                              drop$ecec$base_r2)
-drop$ecec$fine_dr2 <- deltaR2(ecec_both_stats[ecec_both_stats$id == 32, ],
-                              drop$ecec$fine_r2)
+drop$ecec$base_dr2 <- deltaR2(ecec_both_stats[ecec_both_stats$id == 1, ], drop$ecec$base_r2)
+drop$ecec$fine_dr2 <- deltaR2(ecec_both_stats[ecec_both_stats$id == 32, ], drop$ecec$fine_r2)
 rm(data)
 
 # Save LaTeX table
@@ -939,9 +878,8 @@ lambda <- bc_lambda$CLAY
 # Calculate and check the empirical variogram
 model <- clay_sel$poor_lm
 breaks <- seq(0, 6500, 100)
-clay_vario$poor <- fitVariog(y = y, model = model, 
-                             data = as.data.frame(cal_data), 
-                             lambda = lambda, breaks = breaks)
+clay_vario$poor <- 
+  fitVariog(y = y, model = model, data = as.data.frame(cal_data), lambda = lambda, breaks = breaks)
 plot(clay_vario$poor, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
@@ -960,9 +898,8 @@ gc()
 # Calculate and check the empirical variogram
 model <- clay_sel$base_lm
 breaks <- seq(0, 6500, 100)
-clay_vario$base <- fitVariog(y = y, model = model, 
-                             data = as.data.frame(cal_data), 
-                             lambda = lambda, breaks = breaks)
+clay_vario$base <- 
+  fitVariog(y = y, model = model, data = as.data.frame(cal_data), lambda = lambda, breaks = breaks)
 plot(clay_vario$base, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
@@ -981,9 +918,8 @@ gc()
 # Calculate and check the empirical variogram
 model <- clay_sel$fine_lm
 breaks <- seq(0, 6500, 100)
-clay_vario$fine <- fitVariog(y = y, model = model, 
-                             data = as.data.frame(cal_data), 
-                             lambda = lambda, breaks = breaks)
+clay_vario$fine <- 
+  fitVariog(y = y, model = model, data = as.data.frame(cal_data), lambda = lambda, breaks = breaks)
 plot(clay_vario$fine, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
@@ -1002,9 +938,8 @@ gc()
 # Calculate and check the empirical variogram
 model <- clay_sel$best_lm
 breaks <- seq(0, 6500, 100)
-clay_vario$best <- fitVariog(y = y, model = model, 
-                             data = as.data.frame(cal_data), 
-                             lambda = lambda, breaks = breaks)
+clay_vario$best <- 
+  fitVariog(y = y, model = model, data = as.data.frame(cal_data), lambda = lambda, breaks = breaks)
 plot(clay_vario$best, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
@@ -1121,9 +1056,8 @@ gc()
 # Calculate and check the empirical variogram
 model <- orca_sel$fine_lm
 breaks <- seq(0, 6500, 100)
-orca_vario$fine <- fitVariog(y = y, model = model, 
-                             data = as.data.frame(cal_data), 
-                             lambda = lambda, breaks = breaks)
+orca_vario$fine <- 
+  fitVariog(y = y, model = model, data = as.data.frame(cal_data), lambda = lambda, breaks = breaks)
 plot(orca_vario$fine, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
@@ -1142,9 +1076,8 @@ gc()
 # Calculate and check the empirical variogram
 model <- orca_sel$best_lm
 breaks <- seq(0, 6500, 100)
-orca_vario$best <- fitVariog(y = y, model = model, 
-                             data = as.data.frame(cal_data), 
-                             lambda = lambda, breaks = breaks)
+orca_vario$best <- 
+  fitVariog(y = y, model = model, data = as.data.frame(cal_data), lambda = lambda, breaks = breaks)
 plot(orca_vario$best, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
@@ -1219,9 +1152,8 @@ lambda <- bc_lambda$ECEC
 # Calculate and check the empirical variogram
 model <- ecec_sel$poor_lm
 breaks <- seq(0, 6500, 100)
-ecec_vario$poor <- fitVariog(y = y, model = model, 
-                             data = as.data.frame(cal_data), 
-                             lambda = lambda, breaks = breaks)
+ecec_vario$poor <- 
+  fitVariog(y = y, model = model, data = as.data.frame(cal_data), lambda = lambda, breaks = breaks)
 plot(ecec_vario$poor, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
@@ -1240,9 +1172,8 @@ gc()
 # Calculate and check the empirical variogram
 model <- ecec_sel$base_lm
 breaks <- seq(0, 6500, 100)
-ecec_vario$base <- fitVariog(y = y, model = model, 
-                             data = as.data.frame(cal_data), 
-                             lambda = lambda, breaks = breaks)
+ecec_vario$base <- 
+  fitVariog(y = y, model = model, data = as.data.frame(cal_data), lambda = lambda, breaks = breaks)
 plot(ecec_vario$base, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
@@ -1261,9 +1192,8 @@ gc()
 # Calculate and check the empirical variogram
 model <- ecec_sel$fine_lm
 breaks <- seq(0, 6500, 100)
-ecec_vario$fine <- fitVariog(y = y, model = model, 
-                             data = as.data.frame(cal_data), 
-                             lambda = lambda, breaks = breaks)
+ecec_vario$fine <- 
+  fitVariog(y = y, model = model, data = as.data.frame(cal_data), lambda = lambda, breaks = breaks)
 plot(ecec_vario$fine, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
@@ -1282,9 +1212,8 @@ gc()
 # Calculate and check the empirical variogram
 model <- ecec_sel$best_lm
 breaks <- seq(0, 6500, 100)
-ecec_vario$best <- fitVariog(y = y, model = model, 
-                             data = as.data.frame(cal_data), 
-                             lambda = lambda, breaks = breaks)
+ecec_vario$best <-
+  fitVariog(y = y, model = model, data = as.data.frame(cal_data), lambda = lambda, breaks = breaks)
 plot(ecec_vario$best, col = "blue", pch = 20, type = "b")
 
 # Estimate model parameters using REML
@@ -1433,110 +1362,110 @@ rm(model, lambda)
 # CLAY - base linear model -----------------------------------------------------
 model <- clay_sel$base_lm
 lambda <- bc_lambda$CLAY
-clay_sel$base_lm_cv <- looCV(model = model, back = TRUE, lambda = lambda,
-                             original = cal_data$CLAY, simul.back = TRUE, 
-                             n.sim = 20000)
+clay_sel$base_lm_cv <- 
+  looCV(model = model, back = TRUE, lambda = lambda, original = cal_data$CLAY, simul.back = TRUE,
+        n.sim = 20000)
 rm(model, lambda)
 
 # CLAY - best linear model -----------------------------------------------------
 model <- clay_sel$best_lm
 lambda <- bc_lambda$CLAY
-clay_sel$best_lm_cv <- looCV(model = model, back = TRUE, lambda = lambda,
-                             original = cal_data$CLAY, simul.back = TRUE, 
-                             n.sim = 20000)
+clay_sel$best_lm_cv <- 
+  looCV(model = model, back = TRUE, lambda = lambda, original = cal_data$CLAY, simul.back = TRUE,
+        n.sim = 20000)
 rm(model, lambda)
 
 # CLAY - base linear mixed model -----------------------------------------------
 model <- clay_sel$base_lm
-geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
-                      covar.col = colnames(model$model)[-1])
+geodata <- 
+  as.geodata(cal_data, data.col = colnames(model$model)[1], covar.col = colnames(model$model)[-1])
 model <- clay_sel$base_lmm
-clay_sel$base_lmm_cv <- krigeCV(geodata = geodata, model = model, 
-                                reestimate = TRUE, output.reestimate = TRUE, 
-                                n.sim = 20000)
+clay_sel$base_lmm_cv <- 
+  krigeCV(geodata = geodata, model = model, reestimate = TRUE, output.reestimate = TRUE, 
+          n.sim = 20000)
 rm(geodata, model)
 
 # CLAY - best linear mixed model -----------------------------------------------
 model <- clay_sel$best_lm
-geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
-                      covar.col = colnames(model$model)[-1])
+geodata <- 
+  as.geodata(cal_data, data.col = colnames(model$model)[1], covar.col = colnames(model$model)[-1])
 model <- clay_sel$best_lmm
-clay_sel$best_lmm_cv <- krigeCV(geodata = geodata, model = model, 
-                                reestimate = TRUE, output.reestimate = TRUE, 
-                                n.sim = 20000)
+clay_sel$best_lmm_cv <- 
+  krigeCV(geodata = geodata, model = model, reestimate = TRUE, output.reestimate = TRUE, 
+          n.sim = 20000)
 rm(geodata, model)
 
 # CARBON - base linear model ---------------------------------------------------
 model <- orca_sel$base_lm
 lambda <- bc_lambda$ORCA
-orca_sel$base_lm_cv <- looCV(model = model, back = TRUE, simul.back = TRUE, 
-                             original = cal_data$ORCA, lambda = lambda, 
-                             n.sim = 20000)
+orca_sel$base_lm_cv <-
+  looCV(model = model, back = TRUE, simul.back = TRUE, original = cal_data$ORCA, lambda = lambda, 
+        n.sim = 20000)
 rm(model, lambda)
 
 # CARBON - best linear model ---------------------------------------------------
 model <- orca_sel$best_lm
 lambda <- bc_lambda$ORCA
-orca_sel$best_lm_cv <- looCV(model = model, back = TRUE, simul.back = TRUE, 
-                             original = cal_data$ORCA, lambda = lambda,
-                             n.sim = 20000)
+orca_sel$best_lm_cv <-
+  looCV(model = model, back = TRUE, simul.back = TRUE, original = cal_data$ORCA, lambda = lambda,
+        n.sim = 20000)
 rm(model, lambda)
 
 # CARBON - base linear mixed model ---------------------------------------------
 model <- orca_sel$base_lm
-geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
-                      covar.col = colnames(model$model)[-1])
+geodata <-
+  as.geodata(cal_data, data.col = colnames(model$model)[1], covar.col = colnames(model$model)[-1])
 model<- orca_sel$base_lmm
-orca_sel$base_lmm_cv <- krigeCV(geodata = geodata, model = model, 
-                                reestimate = TRUE, output.reestimate = TRUE, 
-                                n.sim = 20000)
+orca_sel$base_lmm_cv <-
+  krigeCV(geodata = geodata, model = model, reestimate = TRUE, output.reestimate = TRUE, 
+          n.sim = 20000)
 rm(geodata, model)
 
 # CARBON - best linear mixed model ---------------------------------------------
 model <- orca_sel$best_lm
-geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
-                      covar.col = colnames(model$model)[-1])
+geodata <-
+  as.geodata(cal_data, data.col = colnames(model$model)[1], covar.col = colnames(model$model)[-1])
 model<- orca_sel$best_lmm
-orca_sel$best_lmm_cv <- krigeCV(geodata = geodata, model = model, 
-                                reestimate = TRUE, output.reestimate = TRUE, 
-                                n.sim = 20000)
+orca_sel$best_lmm_cv <-
+  krigeCV(geodata = geodata, model = model, reestimate = TRUE, output.reestimate = TRUE, 
+          n.sim = 20000)
 rm(geodata, model)
 
 # ECEC - base linear model -----------------------------------------------------
 model <- ecec_sel$base_lm
 lambda <- bc_lambda$ECEC
-ecec_sel$base_lm_cv <- looCV(model = model, back = TRUE, simul.back = TRUE, 
-                             original = cal_data$ECEC, lambda = lambda, 
-                             n.sim = 20000)
+ecec_sel$base_lm_cv <-
+  looCV(model = model, back = TRUE, simul.back = TRUE, original = cal_data$ECEC, lambda = lambda, 
+        n.sim = 20000)
 rm(model, lambda)
 
 # ECEC - best linear model -----------------------------------------------------
 model <- ecec_sel$best_lm
 lambda <- bc_lambda$ECEC
-ecec_sel$best_lm_cv <- looCV(model = model, back = TRUE, simul.back = TRUE, 
-                             lambda = lambda, original = cal_data$ECEC,
-                             n.sim = 20000)
+ecec_sel$best_lm_cv <-
+  looCV(model = model, back = TRUE, simul.back = TRUE, lambda = lambda, original = cal_data$ECEC,
+        n.sim = 20000)
 rm(model, lambda)
 
 # ECEC - base linear mixed model -----------------------------------------------
 model <- ecec_sel$base_lm
-geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
-                      covar.col = colnames(model$model)[-1])
+geodata <-
+  as.geodata(cal_data, data.col = colnames(model$model)[1], covar.col = colnames(model$model)[-1])
 model <- ecec_sel$base_lmm
-ecec_sel$base_lmm_cv <- krigeCV(model = model, geodata = geodata, back = TRUE,
-                                reestimate = TRUE, output.reestimate = TRUE, 
-                                n.sim = 20000)
+ecec_sel$base_lmm_cv <-
+  krigeCV(model = model, geodata = geodata, back = TRUE, reestimate = TRUE,
+          output.reestimate = TRUE, n.sim = 20000)
 rm(geodata, model)
 gc()
 
 # ECEC - best linear mixed model -----------------------------------------------
 model <- ecec_sel$best_lm
-geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
-                      covar.col = colnames(model$model)[-1])
+geodata <-
+  as.geodata(cal_data, data.col = colnames(model$model)[1], covar.col = colnames(model$model)[-1])
 model <- ecec_sel$best_lmm
-ecec_sel$best_lmm_cv <- krigeCV(model = model, geodata = geodata, back = TRUE,
-                                reestimate = TRUE, output.reestimate = TRUE, 
-                                n.sim = 20000)
+ecec_sel$best_lmm_cv <-
+  krigeCV(model = model, geodata = geodata, back = TRUE, reestimate = TRUE,
+          output.reestimate = TRUE, n.sim = 20000)
 rm(geodata, model)
 gc()
 
@@ -1812,10 +1741,8 @@ if (max(breaks) < max_z) {
 }
 soc.colors <- colorRampPalette(R_pal$soc_pal)
 col <- soc.colors(length(breaks)-1)
-carbon_base_lmm_krige$krige.pred.cut <- cut(carbon_base_lmm_krige$krige.pred, 
-                                            breaks = breaks)
-carbon_best_lmm_krige$krige.pred.cut <- cut(carbon_best_lmm_krige$krige.pred, 
-                                            breaks = breaks)
+carbon_base_lmm_krige$krige.pred.cut <- cut(carbon_base_lmm_krige$krige.pred, breaks = breaks)
+carbon_best_lmm_krige$krige.pred.cut <- cut(carbon_best_lmm_krige$krige.pred, breaks = breaks)
 p1 <- spplot(carbon_base_lmm_krige, "krige.pred.cut", col.regions = col)
 p2 <- spplot(carbon_best_lmm_krige, "krige.pred.cut", col.regions = col)
 p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
@@ -1857,10 +1784,8 @@ if (max(breaks) < max_z) {
   breaks <- c(breaks, max_z)
 }
 col <- bpy.colors(length(breaks)-1)
-carbon_base_lmm_krige$krige.var.cut <- cut(carbon_base_lmm_krige$krige.var, 
-                                           breaks = breaks)
-carbon_best_lmm_krige$krige.var.cut <- cut(carbon_best_lmm_krige$krige.var, 
-                                           breaks = breaks)
+carbon_base_lmm_krige$krige.var.cut <- cut(carbon_base_lmm_krige$krige.var, breaks = breaks)
+carbon_best_lmm_krige$krige.var.cut <- cut(carbon_best_lmm_krige$krige.var, breaks = breaks)
 p1 <- spplot(carbon_base_lmm_krige, "krige.var.cut", col.regions = col)
 p2 <- spplot(carbon_best_lmm_krige, "krige.var.cut", col.regions = col)
 p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
@@ -1905,8 +1830,8 @@ quantile(round(pts$TPI_10_15), prob = seq(0, 1, 0.1))
 
 # prepare base data
 model <- ecec_sel$base_lmm
-geodata <- as.geodata(cal_data, data.col = colnames(model$model)[1], 
-                      covar.col = colnames(model$model)[-1])
+geodata <- 
+  as.geodata(cal_data, data.col = colnames(model$model)[1], covar.col = colnames(model$model)[-1])
 model <- ecec_sel$base_lmm
 file <- paste(r_data, "1stArticle_ecec_base_krige.rda", sep = "")
 covars <- colnames(geodata$covariate)
@@ -1961,10 +1886,8 @@ if (max(breaks) < max_z) {
 }
 ecec.colors <- colorRampPalette(R_pal$CEC_pal)
 col <- ecec.colors(length(breaks)-1)
-ecec_base_lmm_krige$krige.pred.cut <- cut(ecec_base_lmm_krige$krige.pred, 
-                                          breaks = breaks)
-ecec_best_lmm_krige$krige.pred.cut <- cut(ecec_best_lmm_krige$krige.pred, 
-                                          breaks = breaks)
+ecec_base_lmm_krige$krige.pred.cut <- cut(ecec_base_lmm_krige$krige.pred, breaks = breaks)
+ecec_best_lmm_krige$krige.pred.cut <- cut(ecec_best_lmm_krige$krige.pred, breaks = breaks)
 p1 <- spplot(ecec_base_lmm_krige, "krige.pred.cut", col.regions = col)
 p2 <- spplot(ecec_best_lmm_krige, "krige.pred.cut", col.regions = col)
 p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
@@ -1972,8 +1895,7 @@ p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
 
 # save plots with predictions
 dev.off()
-pdf(file = paste(fig_dir, "FIG07c.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
+pdf(file = paste(fig_dir, "FIG07c.pdf", sep = ""), width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
                 axis.line = list(lwd = 0.01),
@@ -1981,8 +1903,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(fig_dir, "FIG07f.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
+pdf(file = paste(fig_dir, "FIG07f.pdf", sep = ""), width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
                 axis.line = list(lwd = 0.01),
@@ -1996,8 +1917,7 @@ gc()
 # prepare plots with prediction variance
 ecec_base_lmm_krige$krige.var <- sqrt(ecec_base_lmm_krige$krige.var)
 ecec_best_lmm_krige$krige.var <- sqrt(ecec_best_lmm_krige$krige.var)
-max_z <- c(max(ecec_base_lmm_krige$krige.var), 
-           max(ecec_best_lmm_krige$krige.var))
+max_z <- c(max(ecec_base_lmm_krige$krige.var), max(ecec_best_lmm_krige$krige.var))
 max_z <- max_z[which.min(max_z)]
 breaks <- seq(0, max_z, by = 1)
 max_z <- max(ecec_base_lmm_krige$krige.var, ecec_best_lmm_krige$krige.var)
@@ -2005,10 +1925,8 @@ if (max(breaks) < max_z) {
   breaks <- c(breaks, max_z)
 }
 col <- bpy.colors(length(breaks)-1)
-ecec_base_lmm_krige$krige.var.cut <- cut(ecec_base_lmm_krige$krige.var, 
-                                         breaks = breaks)
-ecec_best_lmm_krige$krige.var.cut <- cut(ecec_best_lmm_krige$krige.var, 
-                                         breaks = breaks)
+ecec_base_lmm_krige$krige.var.cut <- cut(ecec_base_lmm_krige$krige.var, breaks = breaks)
+ecec_best_lmm_krige$krige.var.cut <- cut(ecec_best_lmm_krige$krige.var, breaks = breaks)
 p1 <- spplot(ecec_base_lmm_krige, "krige.var.cut", col.regions = col)
 p2 <- spplot(ecec_best_lmm_krige, "krige.var.cut", col.regions = col)
 p1$legend$right$args$key <- p1$legend$right$args$key[1:3]
@@ -2016,8 +1934,7 @@ p2$legend$right$args$key <- p2$legend$right$args$key[1:3]
 
 # save plots with prediction variance
 dev.off()
-pdf(file = paste(fig_dir, "FIG08c.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
+pdf(file = paste(fig_dir, "FIG08c.pdf", sep = ""), width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
                 axis.line = list(lwd = 0.01),
@@ -2025,8 +1942,7 @@ trellis.par.set(fontsize = list(text = 7, points = 5),
                 layout.heights = list(top.padding = 0, bottom.padding = 0))
 plot(p1)
 dev.off()
-pdf(file = paste(fig_dir, "FIG08f.pdf", sep = ""),
-    width = 6.3/cm(1), height = 6.3/cm(1))
+pdf(file = paste(fig_dir, "FIG08f.pdf", sep = ""), width = 6.3/cm(1), height = 6.3/cm(1))
 trellis.par.set(fontsize = list(text = 7, points = 5),
                 plot.line = list(lwd = 0.001),
                 axis.line = list(lwd = 0.01),
