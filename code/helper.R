@@ -745,4 +745,3 @@ linesREML <-
     line <- curve(gamma.f(x, my.l = my.l), from = 0, to = my.l$max.dist, ...)
     return(line)
   }
-
