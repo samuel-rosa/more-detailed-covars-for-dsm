@@ -23,9 +23,30 @@ sp::plot(cal_data, pch = 20, cex = 0.5)
 # This is the first figure of the article (FIG1a). We indicate some of the main Brazilian cities so
 # that the reader can have a better picture of the location of the study area compared to the size 
 # of the Brazilian territory.
-
-
-
+brazil <- raster::shapefile("data/brazil.shp")
+bb <- sp::bbox(brazil)
+bb[1, 2] <- -34.7
+brazil@bbox <- bb
+pts <- rbind(
+  c(-53.790215, -29.657668), c(-47.887768, -15.788838), c(-46.665337, -23.536445),
+  c(-51.211134, -30.032484), c(-59.992370, -3.080757))
+pts <- data.frame(pts)
+colnames(pts) <- c("long", "lat")
+# set map colors
+brazil[["uf"]] <- as.factor(brazil[["uf"]])
+rs <- rep("lightgray", length(brazil[["uf"]]))
+rs[which(brazil[["uf"]] == "RS")] <- "darkgray"
+# save plot
+dev.off()
+# pdf("res/fig/FIG1a.pdf", width = 9/cm(1), height = 9/cm(1))
+png("res/fig/FIG1a.png", width = 480 * 2, height = 480 * 2, res = 72 * 2)
+sp::plot(brazil, axes = TRUE, col = rs, border = "gray", panel.first = grid())
+points(pts, pch = 20, cex = 0.5)
+labels <- c("Santa Maria", "Brasília", "São Paulo", "Porto Alegre", "Manaus")
+text(pts[["long"]], pts[["lat"]], labels = labels, pos = c(2, 4, 4, 4, 4))
+dev.off()
+rm(brazil, bb, pts, rs)
+gc()
 
 
 
@@ -35,54 +56,6 @@ initGRASS(gisBase = "/usr/lib/grass64/", gisDbase = dbGRASS, location = "dnos-sm
           mapset = "predictions", pid = Sys.getpid(), override = TRUE)
 system("g.region rast=dnos.raster")
 gmeta6()
-
-# LOCATION OF THE STUDY AREA ###################################################
-
-# Location of the study area in the Brazilian territory ------------------------
-# This is the first figure of the article (FIG1a). We indicate some of the
-# main Brazilian cities so that the reader can have a better picture of the 
-# location of the study area compared to the size of the Brazilian territory.
-brazil <- shapefile("~/dbGIS/dnos-sm-rs/brasil.shp")
-bb <- bbox(brazil)
-bb[1, 2] <- -34.7
-brazil@bbox <- bb
-pts <- data.frame(rbind(c(-53.790215, -29.657668), c(-47.887768, -15.788838),
-                        c(-46.665337, -23.536445), c(-51.211134, -30.032484),
-                        c(-59.992370, -3.080757)))
-colnames(pts) <- c("long", "lat")
-coordinates(pts) <- ~ long + lat
-proj4string(pts) <- proj4string(brazil)
-pts <- list("sp.points", pts, pch = 20, cex = 0.5, col = "black")
-# set map colors
-brazil$UF_05 <- as.factor(brazil$UF_05)
-rs <- rep("lightgray", length(brazil$UF_05))
-rs[which(brazil$UF_05 == "RS")] = "darkgray"
-# prepare spplot
-p <- sp::spplot(
-  brazil, zcol = "UF_05", aspect = "iso", col = "gray", 
-  scales = list(draw = TRUE, x = list(at = seq(-70, -35, 5)), y = list(at = seq(-30, 5, 5))),
-  col.regions = colorRampPalette(rs)(27), colorkey = FALSE, cex = 0.3, sp.layout = list(pts),
-  par.settings = list(fontsize = list(text = 7, points = 5),
-                      layout.widths = list(left.padding = 0, right.padding = 0), 
-                      layout.heights = list(top.padding = 0, bottom.padding = 0)),
-  panel = function(x, y, ...) {
-    panel.polygonsplot(x, y, ...)
-    panel.abline(h = seq(-30, 0, 5), v = seq(-70, -40, 5), col = "gray", lty = "dashed", lwd = 0.5)
-    panel.text(x = -53.790215, y = -29.657668, "Santa Maria", pos = 2)
-    panel.text(x = -47.887768, y = -15.788838, "Brasília", pos = 4)
-    panel.text(x = -46.665337, y = -23.536445, "São Paulo", pos = 4)
-    panel.text(x = -51.211134, y = -30.032484, "Porto Alegre", pos = 4)
-    panel.text(x = -59.992370, y = -3.080757, "Manaus", pos = 4)
-  }
-)
-p
-# save image
-dev.off()
-pdf(file = paste(fig_dir, "FIG1a.pdf", sep = ""), width = 9/cm(1), height = 9/cm(1))
-print(p)
-dev.off()
-rm(brazil, bb, pts, rs, p)
-gc()
 
 # Location of the calibration observations -------------------------------------
 # This is the second figure of the article (FIG1b). We show the spatial 
