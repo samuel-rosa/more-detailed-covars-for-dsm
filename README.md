@@ -1,4 +1,4 @@
-dnos-sm-rs-1stArticle
+more-detailed-covars-for-dsm
 ======
 
 ## Description
